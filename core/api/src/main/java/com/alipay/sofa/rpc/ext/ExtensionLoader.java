@@ -196,7 +196,7 @@ public class ExtensionLoader<T> {
         }
     }
 
-    protected void readLine(URL url, String line) throws Throwable {
+    protected void readLine(URL url, String line) {
         String[] aliasAndClassName = parseAliasAndClassName(line);
         if (aliasAndClassName == null || aliasAndClassName.length != 2) {
             return;
@@ -211,6 +211,9 @@ public class ExtensionLoader<T> {
             if (LOGGER.isWarnEnabled()) {
                 LOGGER.warn("Extension {} of extensible {} is disabled, cause by: {}",
                     className, interfaceName, ExceptionUtils.toShortString(e, 2));
+            }
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("Extension " + className + " of extensible " + interfaceName + " is disabled.", e);
             }
             return;
         }
@@ -346,9 +349,16 @@ public class ExtensionLoader<T> {
     }
 
     private void loadSuccess(String alias, ExtensionClass<T> extensionClass) {
-        all.put(alias, extensionClass);
         if (listener != null) {
-            listener.onLoad(extensionClass); // 加载完毕，通知监听器
+            try {
+                listener.onLoad(extensionClass); // 加载完毕，通知监听器
+                all.put(alias, extensionClass);
+            } catch (Exception e) {
+                LOGGER.error("Error when load extension of extensible " + interfaceClass + " with alias: "
+                    + alias + ".", e);
+            }
+        } else {
+            all.put(alias, extensionClass);
         }
     }
 
@@ -366,7 +376,7 @@ public class ExtensionLoader<T> {
         }
 
         String alias = null;
-        String className = null;
+        String className;
         int i = line.indexOf('=');
         if (i > 0) {
             alias = line.substring(0, i).trim(); // 以代码里的为准

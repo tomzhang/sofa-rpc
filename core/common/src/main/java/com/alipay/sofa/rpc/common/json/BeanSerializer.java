@@ -33,6 +33,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Iterator;
 
 import static com.alipay.sofa.rpc.common.json.JSON.getSerializeFields;
 
@@ -60,7 +61,7 @@ public class BeanSerializer {
      * @param bean    要序列化的对象
      * @param addType 是否增加类型标识
      * @return 序列化后的结果，可能是string，number，boolean，list或者map等
-     * @throws NullPointerException 如果非空字段为空的化
+     * @throws NullPointerException 如果非空字段为空的话
      */
     public static Object serialize(Object bean, boolean addType) throws NullPointerException {
         if (bean == null) {
@@ -84,8 +85,11 @@ public class BeanSerializer {
             return array;
         } else if (bean instanceof Map) {
             Map map = (Map) bean;
-            for (Object key : map.keySet()) {
-                map.put(key, serialize(map.get(key), addType));
+            Iterator itr = map.entrySet().iterator();
+            Map.Entry entry = null;
+            while (itr.hasNext()) {
+                entry = (Map.Entry) itr.next();
+                map.put(entry.getKey(), serialize(entry.getValue(), addType));
             }
             return map;
         } else if (bean instanceof Date) {
@@ -138,155 +142,6 @@ public class BeanSerializer {
         return map;
     }
 
-    //    /**
-    //     * Deserialize Collection object to Collection template bean
-    //     *
-    //     * @param template    template bean which will be deserialized
-    //     * @param genericType generic type of collection template bean
-    //     * @param collection  desource Collecttion object
-    //     * @param <T>         generic type
-    //     * @return equal to template bean
-    //     * @throws Exception
-    //     */
-    //    public static <T> Collection deserialize(Collection template, Class<T> genericType, Collection collection) throws Exception {
-    //        return deserialize(template, genericType, collection.toArray());
-    //    }
-    //
-    //    /**
-    //     * Deserialize Array object to Collection template bean
-    //     *
-    //     * @param template    template bean which will be deserialized
-    //     * @param genericType generic type of collection template bean
-    //     * @param array       desource Array object
-    //     * @param <T>         generic type
-    //     * @param <A>         component type of array
-    //     * @return equal to template bean
-    //     * @throws Exception
-    //     */
-    //    public static <T, A> Collection deserialize(Collection template, Class<T> genericType, A[] array) throws Exception {
-    //        Object[] list = template.toArray();
-    //        template.clear();
-    //        for (int i = 0; i < array.length; ++i)
-    //            if (i < list.length) {
-    //                template.add(deserialize(list[i], array[i]));
-    //            } else {
-    //                template.add(deserialize(genericType, array[i]));
-    //            }
-    //        return template;
-    //    }
-    //
-    //    public static <T> T deserialize(T template, Map map) {
-    //
-    //        Class beanClass = template.getClass();
-    //        for (Field field : getSerializeFields(beanClass)) {
-    //            Object value = null;
-    //            try {
-    //                JSONField jsonField = field.getAnnotation(JSONField.class);
-    //                String name = null;
-    //                boolean isRequired = false;
-    //                if (jsonField != null) {
-    //                    name = jsonField.alias();
-    //                    isRequired = jsonField.isRequired();
-    //                }
-    //                if (StringUtils.isEmpty(name)) {
-    //                    name = field.getName();
-    //                }
-    //
-    //                value = map.get(name);
-    //                if (isRequired && value == null) {
-    //                    throw new NullPointerException("Field " + name + " can't be null");
-    //                }
-    //                Object tmp = field.get(template);
-    //                Class clazz = field.getType();
-    //
-    //                if (value == null) {
-    //                    if (clazz.isPrimitive()) {
-    //                        continue;
-    //                    } else {
-    //                        field.set(template, value);
-    //                    }
-    //                } else {
-    //                    if (Collection.class.isAssignableFrom(clazz)) {
-    //                        Class genericType = Object.class;
-    //                        try {
-    //                            genericType = (Class) ((ParameterizedType) field.getGenericType()).getActualTypeArguments()[0];
-    //                        } catch (Exception ignore) {
-    //                        }
-    //                        if (tmp == null || ((Collection) tmp).size() == 0) {
-    //                            if (value instanceof Collection)
-    //                                value = collection2Collection(clazz, genericType, (Collection) value);
-    //                            else if (value.getClass().isArray())
-    //                                value = arrayToCollection(clazz, genericType, (Object[]) value);
-    //                            else return null;
-    //                        } else {
-    //                            if (value instanceof Collection)
-    //                                value = deserialize((Collection) tmp, genericType, (Collection) value);
-    //                            else if (value.getClass().isArray())
-    //                                value = deserialize((Collection) tmp, genericType, (Object[]) value);
-    //                            else return null;
-    //                        }
-    //                    } else {
-    //                        if (tmp == null || (tmp.getClass().isArray() && Array.getLength(tmp) == 0))
-    //                            value = deserialize(clazz, value);
-    //                        else
-    //                            value = deserialize(tmp, value);
-    //                    }
-    //                    field.set(template, value);
-    //                }
-    //
-    //            } catch (Exception e) {
-    //                throw new RuntimeException("Write bean filed " + beanClass.getName()
-    //                        + "." + field.getName() + "error !", e);
-    //            }
-    //        }
-    //        return template;
-    //    }
-
-    //    public static <T> T deserialize(T template, Object object) throws Exception {
-    //        if (object instanceof Number || object instanceof String || object instanceof Boolean)
-    //            return (T) object;
-    //        if (object instanceof Collection)
-    //            return deserialize(template, ((Collection) object).toArray());
-    //        if (template instanceof Collection) {
-    //            if (!object.getClass().isArray())
-    //                return null;
-    //            return (T) deserialize((Collection) template, Object.class, (Object[]) object);
-    //        }
-    //        if (template.getClass().isArray()) {
-    //            if (!object.getClass().isArray())
-    //                return null;
-    //            int desLength = Array.getLength(template);
-    //            int srcLength = Array.getLength(object);
-    //            boolean isAppend = desLength == 0;
-    //            Class componentType = template.getClass().getComponentType();
-    //            int length = desLength > srcLength ? srcLength : desLength;
-    //            Object array = Array.newInstance(componentType, length);
-    //            for (int i = 0; i < length; ++i)
-    //                if (isAppend)
-    //                    Array.set(array, i, deserialize(componentType, Array.get(object, i)));
-    //                else if (i < Array.getLength(template))
-    //                    Array.set(array, i, deserialize(Array.get(template, i), Array.get(object, i)));
-    //            return (T) array;
-    //        }
-    //
-    //        if (object instanceof Map) {
-    //            if (template instanceof Map) {
-    //                Map des = (Map) template;
-    //                Map src = (Map) object;
-    //                boolean isAppend = des.isEmpty();
-    //                for (Object key : src.keySet()) {
-    //                    if (isAppend)
-    //                        des.put(key, src.get(key));
-    //                    else if (des.containsKey(key))
-    //                        des.replace(key, deserialize(des.get(key), src.get(key)));
-    //                }
-    //            } else {
-    //                return deserialize(template, (Map) object);
-    //            }
-    //        }
-    //        return null;
-    //    }
-
     private static <K, V> Map<K, V> mapToMap(Map<K, V> src, Class<? extends Map> dstClazz) {
         if (dstClazz.isInterface()) {
             dstClazz = HashMap.class;
@@ -329,10 +184,10 @@ public class BeanSerializer {
                     }
                     if (value instanceof Collection) {
                         value = collection2Collection((Collection) value, fieldClazz, genericType);
-                    } else if (value.getClass().isArray()) {
+                    } else if (value != null && value.getClass().isArray()) {
                         value = arrayToCollection((Object[]) value, fieldClazz, genericType);
                     } else {
-                        return null;
+                        value = null;
                     }
                 } else {
                     value = deserializeByType(value, fieldClazz);
@@ -392,7 +247,7 @@ public class BeanSerializer {
      */
     public static <T> T deserializeByType(Object src, Class<T> clazz) {
         if (src == null) {
-            return null;
+            return (T) ClassUtils.getDefaultPrimitiveValue(clazz);
         } else if (src instanceof Boolean) {
             return (T) CompatibleTypeUtils.convert(src, clazz);
         } else if (src instanceof Number) {
@@ -409,7 +264,7 @@ public class BeanSerializer {
                 if (Map.class.isAssignableFrom(clazz)) { // map转map
                     return (T) mapToMap(srcMap, (Class<? extends Map>) clazz);
                 } else {
-                    return (T) mapToObject(srcMap, clazz); // 自定义对象
+                    return mapToObject(srcMap, clazz); // 自定义对象
                 }
             }
         } else if (src instanceof Collection) {
